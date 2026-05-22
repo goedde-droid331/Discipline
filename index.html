@@ -68,7 +68,7 @@
             </div>
             <label>
               Student
-              <select id="teacher-student" name="studentId" required></select>
+              <input id="teacher-student-search" name="studentSearch" list="student-options" autocomplete="off" required placeholder="Search student">
             </label>
             <label>
               Category
@@ -98,12 +98,18 @@
         </div>
 
         <section class="tool-panel stacked-panel">
-          <div class="panel-heading">
+          <div class="panel-heading is-filtered">
             <h3>My Assigned Detentions</h3>
-            <label class="table-filter">
-              Status
-              <select id="teacher-status-filter"></select>
-            </label>
+            <div class="filter-row">
+              <label class="table-filter">
+                Student
+                <input id="teacher-entry-student-search" list="student-options" autocomplete="off" placeholder="All students">
+              </label>
+              <label class="table-filter">
+                Status
+                <select id="teacher-status-filter"></select>
+              </label>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -138,7 +144,7 @@
             </div>
             <label>
               Student
-              <select id="admin-student" name="studentId" required></select>
+              <input id="admin-student-search" name="studentSearch" list="student-options" autocomplete="off" required placeholder="Search student">
             </label>
             <label>
               Category
@@ -192,6 +198,10 @@
           </div>
           <div class="history-filters">
             <label>
+              Student
+              <input id="admin-student-filter" list="student-options" autocomplete="off" placeholder="All students">
+            </label>
+            <label>
               Date
               <select id="admin-date-filter"></select>
             </label>
@@ -227,11 +237,11 @@
         </section>
 
         <section class="tool-panel stacked-panel">
-          <div class="panel-heading">
+          <div class="panel-heading is-filtered">
             <h3>Student History</h3>
             <label class="table-filter">
               Student
-              <select id="student-history-filter"></select>
+              <input id="student-history-search" list="student-options" autocomplete="off" placeholder="All students">
             </label>
           </div>
           <div id="student-history-list" class="entry-list"></div>
@@ -240,6 +250,7 @@
     </main>
 
     <datalist id="teacher-options"></datalist>
+    <datalist id="student-options"></datalist>
 
     <script src="app.js"></script>
   </body>

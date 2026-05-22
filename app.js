@@ -145,16 +145,17 @@
     statDressCode: document.getElementById("stat-dress-code"),
     statNoShow: document.getElementById("stat-no-show"),
     teacherVisibleCount: document.getElementById("teacher-visible-count"),
-    teacherStudent: document.getElementById("teacher-student"),
+    teacherStudentSearch: document.getElementById("teacher-student-search"),
     teacherCategory: document.getElementById("teacher-category"),
     teacherDetentionDate: document.getElementById("teacher-detention-date"),
     teacherNotes: document.getElementById("teacher-notes"),
+    teacherEntryStudentSearch: document.getElementById("teacher-entry-student-search"),
     teacherStatusFilter: document.getElementById("teacher-status-filter"),
     dressCodeCount: document.getElementById("dress-code-count"),
     teacherDressCodeList: document.getElementById("teacher-dress-code-list"),
     teacherEntryTable: document.getElementById("teacher-entry-table"),
     adminTotalCount: document.getElementById("admin-total-count"),
-    adminStudent: document.getElementById("admin-student"),
+    adminStudentSearch: document.getElementById("admin-student-search"),
     adminCategory: document.getElementById("admin-category"),
     adminAssignedBy: document.getElementById("admin-assigned-by"),
     adminDetentionDate: document.getElementById("admin-detention-date"),
@@ -165,13 +166,15 @@
     categoryName: document.getElementById("category-name"),
     categoryTeacherVisible: document.getElementById("category-teacher-visible"),
     adminDateFilter: document.getElementById("admin-date-filter"),
+    adminStudentFilter: document.getElementById("admin-student-filter"),
     adminCategoryFilter: document.getElementById("admin-category-filter"),
     adminStatusFilter: document.getElementById("admin-status-filter"),
     adminTeacherFilter: document.getElementById("admin-teacher-filter"),
     adminEntryTable: document.getElementById("admin-entry-table"),
-    studentHistoryFilter: document.getElementById("student-history-filter"),
+    studentHistorySearch: document.getElementById("student-history-search"),
     studentHistoryList: document.getElementById("student-history-list"),
-    teacherOptions: document.getElementById("teacher-options")
+    teacherOptions: document.getElementById("teacher-options"),
+    studentOptions: document.getElementById("student-options")
   };
 
   document.addEventListener("DOMContentLoaded", init);
@@ -211,13 +214,21 @@
     });
 
     [
+      elements.teacherEntryStudentSearch,
+      elements.adminStudentFilter,
       elements.teacherStatusFilter,
       elements.adminDateFilter,
       elements.adminCategoryFilter,
       elements.adminStatusFilter,
       elements.adminTeacherFilter,
-      elements.studentHistoryFilter
+      elements.studentHistorySearch
     ].forEach((control) => control.addEventListener("change", render));
+
+    [
+      elements.teacherEntryStudentSearch,
+      elements.adminStudentFilter,
+      elements.studentHistorySearch
+    ].forEach((control) => control.addEventListener("input", render));
 
     elements.adminEntryTable.addEventListener("change", (event) => {
       const select = event.target.closest("[data-status-entry]");
@@ -252,11 +263,10 @@
 
   function hydrateDynamicControls() {
     const studentOptions = state.students
-      .map((student) => `<option value="${student.id}">${escapeHtml(student.name)} - Grade ${escapeHtml(student.grade)}</option>`)
+      .map((student) => `<option value="${escapeHtml(formatStudentSearchValue(student))}"></option>`)
       .join("");
 
-    elements.teacherStudent.innerHTML = studentOptions;
-    elements.adminStudent.innerHTML = studentOptions;
+    elements.studentOptions.innerHTML = studentOptions;
 
     const categoryOptions = state.categories
       .map((category) => `<option value="${category.id}">${escapeHtml(category.name)}</option>`)
@@ -284,7 +294,6 @@
       .join("");
 
     elements.adminTeacherFilter.innerHTML = `<option value="all">All Staff</option>${assignedByOptions}`;
-    elements.studentHistoryFilter.innerHTML = `<option value="all">All Students</option>${studentOptions}`;
   }
 
   function resetFormDates() {
@@ -306,8 +315,6 @@
 
   function hydrateDynamicControlsPreservingValues() {
     const values = {
-      teacherStudent: elements.teacherStudent.value,
-      adminStudent: elements.adminStudent.value,
       teacherCategory: elements.teacherCategory.value,
       adminCategory: elements.adminCategory.value,
       adminNewStatus: elements.adminNewStatus.value,
@@ -315,14 +322,11 @@
       adminDateFilter: elements.adminDateFilter.value || "all",
       adminCategoryFilter: elements.adminCategoryFilter.value || "all",
       adminStatusFilter: elements.adminStatusFilter.value || "all",
-      adminTeacherFilter: elements.adminTeacherFilter.value || "all",
-      studentHistoryFilter: elements.studentHistoryFilter.value || "all"
+      adminTeacherFilter: elements.adminTeacherFilter.value || "all"
     };
 
     hydrateDynamicControls();
 
-    restoreSelectValue(elements.teacherStudent, values.teacherStudent);
-    restoreSelectValue(elements.adminStudent, values.adminStudent);
     restoreSelectValue(elements.teacherCategory, values.teacherCategory);
     restoreSelectValue(elements.adminCategory, values.adminCategory);
     restoreSelectValue(elements.adminNewStatus, values.adminNewStatus || "assigned");
@@ -331,7 +335,6 @@
     restoreSelectValue(elements.adminCategoryFilter, values.adminCategoryFilter);
     restoreSelectValue(elements.adminStatusFilter, values.adminStatusFilter);
     restoreSelectValue(elements.adminTeacherFilter, values.adminTeacherFilter);
-    restoreSelectValue(elements.studentHistoryFilter, values.studentHistoryFilter);
   }
 
   function renderStats() {
@@ -395,10 +398,15 @@
 
   function renderTeacherEntryTable() {
     const statusFilter = elements.teacherStatusFilter.value || "all";
+    const studentSearch = elements.teacherEntryStudentSearch.value || "";
     let entries = state.entries.filter((entry) => entry.assignedBy === state.settings.currentTeacher);
 
     if (statusFilter !== "all") {
       entries = entries.filter((entry) => entry.status === statusFilter);
+    }
+
+    if (studentSearch.trim()) {
+      entries = entries.filter((entry) => studentMatchesSearch(getStudent(entry.studentId), studentSearch));
     }
 
     entries = sortEntries(entries);
@@ -492,11 +500,11 @@
   }
 
   function renderStudentHistory() {
-    const studentFilter = elements.studentHistoryFilter.value || "all";
+    const studentSearch = elements.studentHistorySearch.value || "";
     let entries = state.entries;
 
-    if (studentFilter !== "all") {
-      entries = entries.filter((entry) => entry.studentId === studentFilter);
+    if (studentSearch.trim()) {
+      entries = entries.filter((entry) => studentMatchesSearch(getStudent(entry.studentId), studentSearch));
     }
 
     entries = sortEntries(entries);
@@ -530,6 +538,7 @@
 
   function getFilteredAdminEntries() {
     const dateFilter = elements.adminDateFilter.value || "all";
+    const studentSearch = elements.adminStudentFilter.value || "";
     const categoryFilter = elements.adminCategoryFilter.value || "all";
     const statusFilter = elements.adminStatusFilter.value || "all";
     const teacherFilter = elements.adminTeacherFilter.value || "all";
@@ -537,6 +546,7 @@
     return state.entries.filter((entry) => {
       if (dateFilter === "assigned-today" && !isToday(entry.assignedAt)) return false;
       if (dateFilter === "detention-today" && !isToday(entry.detentionDate)) return false;
+      if (studentSearch.trim() && !studentMatchesSearch(getStudent(entry.studentId), studentSearch)) return false;
       if (categoryFilter !== "all" && entry.categoryId !== categoryFilter) return false;
       if (statusFilter !== "all" && entry.status !== statusFilter) return false;
       if (teacherFilter !== "all" && entry.assignedBy !== teacherFilter) return false;
@@ -547,10 +557,15 @@
   function handleTeacherEntrySubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const studentId = formData.get("studentId");
+    const studentId = resolveStudentSearch(elements.teacherStudentSearch.value);
     const categoryId = formData.get("categoryId");
     const detentionDate = formData.get("detentionDate");
     const notes = String(formData.get("notes") || "").trim();
+
+    if (!studentId) {
+      showToast("Select one student from the search results.", "error");
+      return;
+    }
 
     state.entries.unshift(createEntry({
       studentId,
@@ -572,14 +587,20 @@
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const assignedBy = String(formData.get("assignedBy") || "").trim();
+    const studentId = resolveStudentSearch(elements.adminStudentSearch.value);
 
     if (!assignedBy) {
       showToast("Assigned By is required.", "error");
       return;
     }
 
+    if (!studentId) {
+      showToast("Select one student from the search results.", "error");
+      return;
+    }
+
     state.entries.unshift(createEntry({
-      studentId: formData.get("studentId"),
+      studentId,
       categoryId: formData.get("categoryId"),
       detentionDate: formData.get("detentionDate"),
       notes: String(formData.get("notes") || "").trim(),
@@ -680,6 +701,42 @@
       grade: "N/A",
       advisory: "N/A"
     };
+  }
+
+  function formatStudentSearchValue(student) {
+    return `${student.name} - Grade ${student.grade}`;
+  }
+
+  function resolveStudentSearch(value) {
+    const query = normalizeSearch(value);
+    if (!query) return "";
+
+    const exactMatch = state.students.find((student) => {
+      return normalizeSearch(formatStudentSearchValue(student)) === query ||
+        normalizeSearch(student.name) === query;
+    });
+
+    if (exactMatch) return exactMatch.id;
+
+    const matches = state.students.filter((student) => studentMatchesSearch(student, value));
+    return matches.length === 1 ? matches[0].id : "";
+  }
+
+  function studentMatchesSearch(student, value) {
+    const query = normalizeSearch(value);
+    if (!query) return true;
+
+    return [
+      student.name,
+      student.grade,
+      `grade ${student.grade}`,
+      student.advisory,
+      formatStudentSearchValue(student)
+    ].some((candidate) => normalizeSearch(candidate).includes(query));
+  }
+
+  function normalizeSearch(value) {
+    return String(value || "").trim().toLowerCase();
   }
 
   function getCategory(id) {

@@ -273,11 +273,24 @@ button:disabled {
   margin-bottom: 14px;
 }
 
+.panel-heading.is-filtered {
+  align-items: end;
+  flex-wrap: wrap;
+}
+
 .panel-heading h3 {
   margin: 0;
   font-size: 1rem;
   line-height: 1.2;
   letter-spacing: 0;
+}
+
+.filter-row {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .status-pill,
@@ -456,7 +469,7 @@ button:focus-visible {
 
 .history-filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -556,13 +569,18 @@ tbody tr:hover {
   }
 
   .top-actions,
-  .form-actions {
+  .form-actions,
+  .filter-row {
     justify-content: stretch;
   }
 
   .top-actions > *,
   .form-actions > * {
     flex: 1 1 auto;
+  }
+
+  .filter-row > * {
+    flex: 1 1 100%;
   }
 
   .context-select {
