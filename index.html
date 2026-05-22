@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student Discipline</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="assets/mater-dei-header.png" alt="" class="brand-mark" width="64" height="64">
+        <div>
+          <h1>Student Discipline</h1>
+          <p id="today-line"></p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <label class="context-select">
+          Teacher
+          <select id="teacher-context"></select>
+        </label>
+        <button class="ghost-button" type="button" data-action="export-data">Export</button>
+        <button class="ghost-button danger" type="button" data-action="reset-demo">Reset Demo</button>
+      </div>
+    </header>
+
+    <nav class="app-nav" aria-label="Dashboards">
+      <button type="button" class="nav-button is-active" data-nav="teacher">Teacher Dashboard</button>
+      <button type="button" class="nav-button" data-nav="admin">Admin Dashboard</button>
+    </nav>
+
+    <main class="app-main">
+      <section class="stats-strip" aria-label="Discipline totals">
+        <article class="stat">
+          <span class="stat-label">Today</span>
+          <strong id="stat-today">0</strong>
+        </article>
+        <article class="stat">
+          <span class="stat-label">My Open</span>
+          <strong id="stat-my-open">0</strong>
+        </article>
+        <article class="stat">
+          <span class="stat-label">Dress Code</span>
+          <strong id="stat-dress-code">0</strong>
+        </article>
+        <article class="stat">
+          <span class="stat-label">No Show</span>
+          <strong id="stat-no-show">0</strong>
+        </article>
+      </section>
+
+      <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+
+      <section class="view is-active" id="view-teacher" aria-labelledby="teacher-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="teacher-title">Teacher Dashboard</h2>
+          </div>
+          <span class="status-pill" id="teacher-visible-count">0 visible</span>
+        </div>
+
+        <div class="dashboard-grid">
+          <form class="tool-panel form-stack" id="teacher-entry-form">
+            <div class="panel-heading">
+              <h3>Assign Detention</h3>
+              <span class="status-pill">Teacher</span>
+            </div>
+            <label>
+              Student
+              <select id="teacher-student" name="studentId" required></select>
+            </label>
+            <label>
+              Category
+              <select id="teacher-category" name="categoryId" required></select>
+            </label>
+            <label>
+              Detention Date
+              <input id="teacher-detention-date" name="detentionDate" type="date" required>
+            </label>
+            <label>
+              Notes
+              <textarea id="teacher-notes" name="notes" rows="4" placeholder="Optional"></textarea>
+            </label>
+            <div class="form-actions">
+              <button class="primary-button" type="submit">Assign Detention</button>
+              <button class="ghost-button" type="reset">Clear</button>
+            </div>
+          </form>
+
+          <section class="tool-panel">
+            <div class="panel-heading">
+              <h3>Today's Dress Code Detentions</h3>
+              <span class="muted-count" id="dress-code-count">0</span>
+            </div>
+            <div id="teacher-dress-code-list" class="entry-list"></div>
+          </section>
+        </div>
+
+        <section class="tool-panel stacked-panel">
+          <div class="panel-heading">
+            <h3>My Assigned Detentions</h3>
+            <label class="table-filter">
+              Status
+              <select id="teacher-status-filter"></select>
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Category</th>
+                  <th>Detention</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="teacher-entry-table"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" id="view-admin" aria-labelledby="admin-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="admin-title">Admin Dashboard</h2>
+          </div>
+          <span class="status-pill full" id="admin-total-count">0 total</span>
+        </div>
+
+        <div class="dashboard-grid">
+          <form class="tool-panel form-stack" id="admin-entry-form">
+            <div class="panel-heading">
+              <h3>Create Entry</h3>
+              <span class="status-pill full">Admin</span>
+            </div>
+            <label>
+              Student
+              <select id="admin-student" name="studentId" required></select>
+            </label>
+            <label>
+              Category
+              <select id="admin-category" name="categoryId" required></select>
+            </label>
+            <label>
+              Assigned By
+              <input id="admin-assigned-by" name="assignedBy" list="teacher-options" required>
+            </label>
+            <label>
+              Detention Date
+              <input id="admin-detention-date" name="detentionDate" type="date" required>
+            </label>
+            <label>
+              Status
+              <select id="admin-new-status" name="status" required></select>
+            </label>
+            <label>
+              Notes
+              <textarea id="admin-notes" name="notes" rows="4" placeholder="Optional"></textarea>
+            </label>
+            <div class="form-actions">
+              <button class="primary-button" type="submit">Save Entry</button>
+              <button class="ghost-button" type="reset">Clear</button>
+            </div>
+          </form>
+
+          <section class="tool-panel">
+            <div class="panel-heading">
+              <h3>Categories</h3>
+              <span class="muted-count" id="category-count">0</span>
+            </div>
+            <form class="form-stack compact-form" id="category-form">
+              <label>
+                Category Name
+                <input id="category-name" name="name" required placeholder="Category">
+              </label>
+              <label class="check-row">
+                <input id="category-teacher-visible" name="teacherDailyVisible" type="checkbox">
+                Teacher daily visibility
+              </label>
+              <button class="secondary-button" type="submit">Add Category</button>
+            </form>
+            <div id="category-list" class="category-list"></div>
+          </section>
+        </div>
+
+        <section class="tool-panel stacked-panel">
+          <div class="panel-heading">
+            <h3>All Discipline Entries</h3>
+          </div>
+          <div class="history-filters">
+            <label>
+              Date
+              <select id="admin-date-filter"></select>
+            </label>
+            <label>
+              Category
+              <select id="admin-category-filter"></select>
+            </label>
+            <label>
+              Status
+              <select id="admin-status-filter"></select>
+            </label>
+            <label>
+              Assigned By
+              <select id="admin-teacher-filter"></select>
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Category</th>
+                  <th>Assigned By</th>
+                  <th>Assigned</th>
+                  <th>Detention</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="admin-entry-table"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="tool-panel stacked-panel">
+          <div class="panel-heading">
+            <h3>Student History</h3>
+            <label class="table-filter">
+              Student
+              <select id="student-history-filter"></select>
+            </label>
+          </div>
+          <div id="student-history-list" class="entry-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <datalist id="teacher-options"></datalist>
+
+    <script src="app.js"></script>
+  </body>
+</html>
