@@ -338,18 +338,15 @@
   }
 
   function renderStats() {
-    const currentTeacher = state.settings.currentTeacher;
     const todayEntries = state.entries.filter((entry) => isToday(entry.assignedAt));
-    const myOpenEntries = state.entries.filter((entry) => {
-      return entry.assignedBy === currentTeacher && !["served", "canceled", "excused"].includes(entry.status);
-    });
+    const openEntries = state.entries.filter((entry) => !["served", "canceled", "excused"].includes(entry.status));
     const dressCodeToday = state.entries.filter((entry) => {
       return getCategory(entry.categoryId).id === "dress-code" && isToday(entry.assignedAt);
     });
     const noShows = state.entries.filter((entry) => entry.status === "no-show");
 
     elements.statToday.textContent = String(todayEntries.length);
-    elements.statMyOpen.textContent = String(myOpenEntries.length);
+    elements.statMyOpen.textContent = String(openEntries.length);
     elements.statDressCode.textContent = String(dressCodeToday.length);
     elements.statNoShow.textContent = String(noShows.length);
   }
