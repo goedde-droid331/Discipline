@@ -22,6 +22,14 @@
     { id: "canceled", name: "Canceled" }
   ];
 
+  const severityOptions = [
+    { id: "low", name: "Low" },
+    { id: "medium", name: "Medium" },
+    { id: "high", name: "High" },
+    { id: "critical", name: "Critical" },
+    { id: "neutral", name: "Neutral" }
+  ];
+
   function createSeedState() {
     const now = new Date();
     const today = toDateInputValue(now);
@@ -47,13 +55,13 @@
         { id: "stu-110", name: "Tyler Brooks", grade: "9", advisory: "Fleming" }
       ],
       categories: [
-        { id: "dress-code", name: "Dress Code", teacherDailyVisible: true },
-        { id: "excessive-talking", name: "Excessive Talking", teacherDailyVisible: false },
-        { id: "disrespect", name: "Disrespect", teacherDailyVisible: false },
-        { id: "fighting", name: "Fighting", teacherDailyVisible: false },
-        { id: "harassment", name: "Harassment", teacherDailyVisible: false },
-        { id: "bullying", name: "Bullying", teacherDailyVisible: false },
-        { id: "other", name: "Other", teacherDailyVisible: false }
+        { id: "dress-code", name: "Dress Code", severity: "low", teacherDailyVisible: true },
+        { id: "excessive-talking", name: "Excessive Talking", severity: "low", teacherDailyVisible: false },
+        { id: "disrespect", name: "Disrespect", severity: "medium", teacherDailyVisible: false },
+        { id: "fighting", name: "Fighting", severity: "critical", teacherDailyVisible: false },
+        { id: "harassment", name: "Harassment", severity: "high", teacherDailyVisible: false },
+        { id: "bullying", name: "Bullying", severity: "high", teacherDailyVisible: false },
+        { id: "other", name: "Other", severity: "neutral", teacherDailyVisible: false }
       ],
       entries: [
         {
@@ -164,6 +172,7 @@
     categoryCount: document.getElementById("category-count"),
     categoryList: document.getElementById("category-list"),
     categoryName: document.getElementById("category-name"),
+    categorySeverity: document.getElementById("category-severity"),
     categoryTeacherVisible: document.getElementById("category-teacher-visible"),
     adminDateFilter: document.getElementById("admin-date-filter"),
     adminStudentFilter: document.getElementById("admin-student-filter"),
@@ -200,6 +209,12 @@
     document.getElementById("teacher-entry-form").addEventListener("submit", handleTeacherEntrySubmit);
     document.getElementById("admin-entry-form").addEventListener("submit", handleAdminEntrySubmit);
     document.getElementById("category-form").addEventListener("submit", handleCategorySubmit);
+
+    elements.categoryList.addEventListener("change", (event) => {
+      const select = event.target.closest("[data-severity-category]");
+      if (!select) return;
+      updateCategorySeverity(select.dataset.severityCategory, select.value);
+    });
 
     document.getElementById("teacher-entry-form").addEventListener("reset", () => {
       window.setTimeout(resetFormDates, 0);
@@ -279,13 +294,18 @@
       .map((status) => `<option value="${status.id}">${escapeHtml(status.name)}</option>`)
       .join("");
 
+    const severityOptionsMarkup = severityOptions
+      .map((severity) => `<option value="${severity.id}">${escapeHtml(severity.name)}</option>`)
+      .join("");
+
     elements.adminNewStatus.innerHTML = statusOptionsMarkup;
+    elements.categorySeverity.innerHTML = severityOptionsMarkup;
     elements.teacherStatusFilter.innerHTML = `<option value="all">All Statuses</option>${statusOptionsMarkup}`;
     elements.adminStatusFilter.innerHTML = `<option value="all">All Statuses</option>${statusOptionsMarkup}`;
     elements.adminCategoryFilter.innerHTML = `<option value="all">All Categories</option>${categoryOptions}`;
     elements.adminDateFilter.innerHTML = [
       '<option value="all">All Dates</option>',
-      '<option value="assigned-today">Assigned Today</option>',
+      '<option value="assigned-today">Issued Today</option>',
       '<option value="detention-today">Detention Today</option>'
     ].join("");
 
@@ -384,8 +404,9 @@
           </div>
           <div class="entry-meta">
             <span>Grade ${escapeHtml(student.grade)}</span>
-            <span>${escapeHtml(category.name)}</span>
-            <span>Assigned by ${escapeHtml(entry.assignedBy)}</span>
+            ${categoryTag(category)}
+            <span>Issued ${escapeHtml(formatDateTime(entry.assignedAt))}</span>
+            <span>Issued by ${escapeHtml(entry.assignedBy)}</span>
             <span>Detention ${escapeHtml(formatDate(entry.detentionDate))}</span>
           </div>
         </article>
@@ -409,7 +430,7 @@
     entries = sortEntries(entries);
 
     if (!entries.length) {
-      elements.teacherEntryTable.innerHTML = `<tr><td colspan="5">${emptyText("No assigned detentions found.")}</td></tr>`;
+      elements.teacherEntryTable.innerHTML = `<tr><td colspan="6">${emptyText("No assigned detentions found.")}</td></tr>`;
       return;
     }
 
@@ -423,7 +444,8 @@
             <strong>${escapeHtml(student.name)}</strong><br>
             <span class="entry-meta">Grade ${escapeHtml(student.grade)}</span>
           </td>
-          <td><span class="tag category">${escapeHtml(category.name)}</span></td>
+          <td>${categoryTag(category)}</td>
+          <td>${escapeHtml(formatDateTime(entry.assignedAt))}</td>
           <td>${escapeHtml(formatDate(entry.detentionDate))}</td>
           <td>${statusTag(getStatus(entry.status))}</td>
           <td class="notes-cell">${escapeHtml(entry.notes || "None")}</td>
@@ -444,15 +466,28 @@
     elements.categoryList.innerHTML = state.categories.map((category) => {
       const visibilityClass = category.teacherDailyVisible ? "on" : "off";
       const visibilityLabel = category.teacherDailyVisible ? "Visible Daily" : "Admin Only";
+      const severity = getSeverity(category.severity);
 
       return `
         <article class="category-card">
           <div class="category-card-head">
             <h4>${escapeHtml(category.name)}</h4>
-            <span class="visibility-chip ${visibilityClass}">${visibilityLabel}</span>
+            <div class="category-badges">
+              ${severityBadge(severity)}
+              <span class="visibility-chip ${visibilityClass}">${visibilityLabel}</span>
+            </div>
           </div>
           <div class="category-meta">
             <span>${escapeHtml(countEntriesForCategory(category.id))} entries</span>
+            <label class="inline-select">
+              Severity
+              <select data-severity-category="${escapeHtml(category.id)}">
+                ${severityOptions.map((option) => {
+                  const selected = option.id === severity.id ? " selected" : "";
+                  return `<option value="${option.id}"${selected}>${escapeHtml(option.name)}</option>`;
+                }).join("")}
+              </select>
+            </label>
             <button class="small-button" type="button" data-action="toggle-category" data-id="${escapeHtml(category.id)}">Toggle Visibility</button>
           </div>
         </article>
@@ -478,7 +513,7 @@
             <strong>${escapeHtml(student.name)}</strong><br>
             <span class="entry-meta">Grade ${escapeHtml(student.grade)}</span>
           </td>
-          <td><span class="tag category">${escapeHtml(category.name)}</span></td>
+          <td>${categoryTag(category)}</td>
           <td>${escapeHtml(entry.assignedBy)}</td>
           <td>${escapeHtml(formatDateTime(entry.assignedAt))}</td>
           <td>${escapeHtml(formatDate(entry.detentionDate))}</td>
@@ -523,9 +558,9 @@
           </div>
           <div class="entry-meta">
             <span>Grade ${escapeHtml(student.grade)}</span>
-            <span>${escapeHtml(category.name)}</span>
-            <span>${escapeHtml(formatDateTime(entry.assignedAt))}</span>
-            <span>Assigned by ${escapeHtml(entry.assignedBy)}</span>
+            ${categoryTag(category)}
+            <span>Issued ${escapeHtml(formatDateTime(entry.assignedAt))}</span>
+            <span>Issued by ${escapeHtml(entry.assignedBy)}</span>
           </div>
           <span class="entry-note">${escapeHtml(entry.notes || "None")}</span>
         </article>
@@ -577,7 +612,7 @@
     event.currentTarget.reset();
     resetFormDates();
     render();
-    showToast("Detention assigned.", "success");
+    showToast("Detention issued.", "success");
   }
 
   function handleAdminEntrySubmit(event) {
@@ -587,7 +622,7 @@
     const studentId = resolveStudentSearch(elements.adminStudentSearch.value);
 
     if (!assignedBy) {
-      showToast("Assigned By is required.", "error");
+      showToast("Issued By is required.", "error");
       return;
     }
 
@@ -619,6 +654,7 @@
   function handleCategorySubmit(event) {
     event.preventDefault();
     const name = elements.categoryName.value.trim();
+    const severity = elements.categorySeverity.value || defaultSeverityForCategory("", name);
     const teacherDailyVisible = elements.categoryTeacherVisible.checked;
 
     if (!name) {
@@ -627,7 +663,7 @@
     }
 
     const id = uniqueCategoryId(name);
-    state.categories.push({ id, name, teacherDailyVisible });
+    state.categories.push({ id, name, severity, teacherDailyVisible });
     saveState();
     event.currentTarget.reset();
     render();
@@ -668,6 +704,15 @@
     if (!category) return;
 
     category.teacherDailyVisible = !category.teacherDailyVisible;
+    saveState();
+    render();
+  }
+
+  function updateCategorySeverity(id, severity) {
+    const category = state.categories.find((item) => item.id === id);
+    if (!category) return;
+
+    category.severity = getSeverity(severity).id;
     saveState();
     render();
   }
@@ -740,12 +785,27 @@
     return state.categories.find((category) => category.id === id) || {
       id,
       name: "Unknown",
+      severity: "neutral",
       teacherDailyVisible: false
     };
   }
 
   function getStatus(id) {
     return statusOptions.find((status) => status.id === id) || statusOptions[0];
+  }
+
+  function getSeverity(id) {
+    return severityOptions.find((severity) => severity.id === id) || severityOptions[4];
+  }
+
+  function defaultSeverityForCategory(id, name) {
+    const value = normalizeSearch(`${id} ${name}`);
+
+    if (value.includes("fighting")) return "critical";
+    if (value.includes("harassment") || value.includes("harrassment") || value.includes("bullying")) return "high";
+    if (value.includes("disrespect")) return "medium";
+    if (value.includes("dress code") || value.includes("excessive talking")) return "low";
+    return "neutral";
   }
 
   function countEntriesForCategory(id) {
@@ -774,6 +834,15 @@
     return `<span class="tag ${escapeHtml(status.id)}">${escapeHtml(status.name)}</span>`;
   }
 
+  function categoryTag(category) {
+    const severity = getSeverity(category.severity);
+    return `<span class="tag category severity-${escapeHtml(severity.id)}" title="${escapeHtml(severity.name)} severity">${escapeHtml(category.name)}</span>`;
+  }
+
+  function severityBadge(severity) {
+    return `<span class="tag severity-label severity-${escapeHtml(severity.id)}">${escapeHtml(severity.name)}</span>`;
+  }
+
   function emptyState(message) {
     return `<div class="empty-state">${escapeHtml(message)}</div>`;
   }
@@ -789,11 +858,7 @@
   }
 
   function uniqueCategoryId(name) {
-    const base = name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "category";
+    const base = slugCategoryId(name);
 
     let id = base;
     let counter = 2;
@@ -804,6 +869,14 @@
     }
 
     return id;
+  }
+
+  function slugCategoryId(name) {
+    return String(name || "category")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "category";
   }
 
   function isToday(value) {
@@ -871,12 +944,27 @@
 
   function normalizeState(parsed) {
     const seed = createSeedState();
+    const categories = Array.isArray(parsed.categories)
+      ? parsed.categories.map(normalizeCategory)
+      : seed.categories;
 
     return {
       settings: { ...seed.settings, ...(parsed.settings || {}) },
       students: Array.isArray(parsed.students) ? parsed.students : seed.students,
-      categories: Array.isArray(parsed.categories) ? parsed.categories : seed.categories,
+      categories,
       entries: Array.isArray(parsed.entries) ? parsed.entries : seed.entries
+    };
+  }
+
+  function normalizeCategory(category) {
+    const name = category.name || "Category";
+    const id = category.id || slugCategoryId(name);
+
+    return {
+      id,
+      name,
+      severity: getSeverity(category.severity || defaultSeverityForCategory(id, name)).id,
+      teacherDailyVisible: Boolean(category.teacherDailyVisible)
     };
   }
 
